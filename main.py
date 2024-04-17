@@ -12,6 +12,7 @@ import config
 
 class Manga:
     """
+    Fields:
     __manga_path = None  # String, Private
     __out_path = None  # String, Private
     __chapters = []  # List of Chapters, Private
@@ -95,6 +96,7 @@ class Manga:
 
 class Chapter:
     """
+    Fields:
     __manga = None  # Manga, Private
     __chapter_path = None  # String, Private
     __chapter_name = None  # String, Private
@@ -119,17 +121,31 @@ class Chapter:
                   font=fnt, fill=(0, 0, 0))
         return image
 
-    def __drawPageNumber(self, page_num, total_pages):  # PIL Image
-        text = str(self.getChapterNumber()) + "  " + str(page_num) + "/" + str(int(total_pages))
+    def __drawPageNumber(self, dest, curr_page, total_pages):  # void
+        """
+        Draws page numbers on the input image.
+        :param dest: Destination image to paste the page numbers on
+        :param curr_page: Current page number of chapter
+        :param total_pages: Total pages in chapter
+        :return: void
+        """
+        text = str(self.getChapterNumber()) + "  " + str(curr_page) + "/" + str(int(total_pages))
         fnt = ImageFont.truetype(config.FONT, 30)
-        image = Image.new(mode="RGBA", size=(160, 22), color=config.PAGE_NUM_FILL)
-        draw = ImageDraw.Draw(image)
+        overlay = Image.new(mode="RGBA", size=(160, 22), color=config.PAGE_NUM_FILL)
+        draw = ImageDraw.Draw(overlay)
         draw.text((160, 0), text, font=fnt, fill=config.PAGE_NUM_COLOR, anchor="rt")
-        return image
+
+        # Paste the page number on top
+        dest.paste(overlay, (dest.size[0] - overlay.size[0], 0), overlay)
+        #         (img to paste, coordinates, mask)
+        overlay.close()
 
     def toPDF(self):  # String
-        """Creates a single pdf from all the pages
-        Returns a string pointing to where the pdf was saved"""
+        """
+        Creates a single pdf from all the pages.
+        Returns a string pointing to where the pdf was saved.
+        :return: String that is the path to the output pdf
+        """
 
         # Draw title
         self.__pages.append(self.__drawTitle())
@@ -143,11 +159,7 @@ class Chapter:
                 logging.warning("Unable to open image: " + str(os.path.join(self.getChapterPath(), image)))
             else:
                 current = current.convert("RGB")
-                page_number = self.__drawPageNumber(index, len(chapter_dir))
-                # Paste the page number on top
-                current.paste(page_number, (current.size[0] - page_number.size[0], 0), page_number)
-                page_number.close()
-                # current.save(os.path.join(self.getOut(),image))
+                self.__drawPageNumber(current, index, len(chapter_dir))
                 self.__pages.append(current)
             index += 1
 
