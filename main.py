@@ -9,6 +9,7 @@ import logging
 
 import config
 
+
 class Manga:
     """
     __manga_path = None  # String, Private
@@ -17,7 +18,6 @@ class Manga:
     __chapter_pdfs = []  # List of Strings pointing to the chapter pdfs, Private
     __chapter_numbers = []  # List of Ints, Private
     __chapter_invalids = []  # List of Ints, Private
-    __args = None  # args from argparse, Private
     """
 
     def __init__(self, manga_path, out_path):
@@ -28,7 +28,6 @@ class Manga:
         self.__chapter_pdfs = []
         self.__chapter_numbers = []
         self.__chapter_invalids = []
-        self.__args = None
         self.__initChapters()
 
     def __initChapters(self):
@@ -51,7 +50,7 @@ class Manga:
                 for existing in self.__chapters:
                     if chapter.getChapterNumber() == existing.getChapterNumber():
                         logging.warning("Attempt to add duplicate chapter: " + str(chapter.getChapterName())
-                                     + "  Existing chapter: " + str(existing.getChapterName()))
+                                        + "  Existing chapter: " + str(existing.getChapterName()))
                         break
                 else:
                     logging.warning("You should not see this message sent by Manga's constructor")
@@ -63,9 +62,6 @@ class Manga:
         while self.__chapter_invalids:
             self.__chapters.pop(self.__chapter_invalids[0])
             self.__chapter_invalids = [x - 1 for x in self.__chapter_invalids[1:]]
-
-    def addArgs(self, args):
-        self.__args = args
 
     def convert(self):  # String
         """Create the final output pdf"""
@@ -80,12 +76,12 @@ class Manga:
         # Combine all pdfs to a single pdf
         merger = PdfMerger(strict=False)
         for pdf in self.__chapter_pdfs:
-            merger.append(pdf)
+            merger.append(pdf, "Chapter " + os.path.basename(pdf))
         with open(os.path.join(self.getOut(), out_name), "wb") as f:
             merger.write(f)
         logging.info("Combined pdf created")
         # Remove temporary PDF files
-        if self.__args.delete:
+        if config.DELETE:
             logging.info("Removing temporary pdfs")
             [os.remove(os.path.join(self.getOut(), x)) for x in os.listdir(self.getOut()) if x != out_name]
         return os.path.join(self.getOut(), out_name)
@@ -119,15 +115,16 @@ class Chapter:
         # Fix magic number
         image = Image.new(mode="RGB", size=(739, 1080), color="white")
         draw = ImageDraw.Draw(image)
-        draw.text((226, 445), "chapter " + str(self.getChapterNumber()), font=fnt, fill=(0, 0, 0))
+        draw.text((0, 445), "Next:\nChapter " + str(self.getChapterNumber() + "\n" + str(self.getChapterName())),
+                  font=fnt, fill=(0, 0, 0))
         return image
 
     def __drawPageNumber(self, page_num, total_pages):  # PIL Image
         text = str(self.getChapterNumber()) + "  " + str(page_num) + "/" + str(int(total_pages))
         fnt = ImageFont.truetype(config.FONT, 30)
-        image = Image.new(mode="RGB", size=(160, 22), color="white")
+        image = Image.new(mode="RGBA", size=(160, 22), color=config.PAGE_NUM_FILL)
         draw = ImageDraw.Draw(image)
-        draw.text((160, 0), text, font=fnt, fill=(0, 0, 0), anchor="rt")
+        draw.text((160, 0), text, font=fnt, fill=config.PAGE_NUM_COLOR, anchor="rt")
         return image
 
     def toPDF(self):  # String
@@ -147,7 +144,8 @@ class Chapter:
             else:
                 current = current.convert("RGB")
                 page_number = self.__drawPageNumber(index, len(chapter_dir))
-                Image.Image.paste(current, page_number, (current.size[0] - page_number.size[0], 0))
+                # Paste the page number on top
+                current.paste(page_number, (current.size[0] - page_number.size[0], 0), page_number)
                 page_number.close()
                 # current.save(os.path.join(self.getOut(),image))
                 self.__pages.append(current)
@@ -198,11 +196,14 @@ def main():
     parser.set_defaults(delete=True)
     args = parser.parse_args()
 
+    if args.delete is not None:
+        config.DELETE = args.delete
+
     # Create Manga object
     manga = Manga(args.input, args.output)
-    manga.addArgs(args)
     # Convert to PDF
-    print("Starting conversion: " + str(args.input) + " -> " + str(os.path.join(args.output, os.path.basename(args.output))) + ".pdf")
+    print("Starting conversion: " + str(args.input) + " -> " + str(
+        os.path.join(args.output, os.path.basename(args.output))) + ".pdf")
     out = manga.convert()
     print("Your manga is done!  The path is " + str(out))
 
