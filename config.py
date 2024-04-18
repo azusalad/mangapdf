@@ -29,5 +29,9 @@ PAGE_PADDING = 1
 # Font size
 PAGE_SIZE = 20
 
+# ----------------------------
+# Defaults
 # Arguments will take priority over defaults below
+# ----------------------------
+# Delete temporary pdf files created during conversion
 DELETE = True
