@@ -112,13 +112,17 @@ class Chapter:
         self.__pages = []
 
     def __drawTitle(self):  # PIL Image
-        """Draw a cover title for the Chapter"""
-        fnt = ImageFont.truetype(config.FONT, 60)
+        """
+        Draw a cover title for the Chapter
+        :return: PIL image of the constructed title page
+        """
+        fnt = ImageFont.truetype(config.TITLE_FONT, config.TITLE_SIZE)
         # Fix magic number
-        image = Image.new(mode="RGB", size=(739, 1080), color="white")
+        image = Image.new(mode="RGB", size=(config.TITLE_WIDTH, config.TITLE_HEIGHT), color=config.TITLE_BG_COLOR)
         draw = ImageDraw.Draw(image)
-        draw.text((0, 445), "Next:\nChapter " + str(self.getChapterNumber() + "\n" + str(self.getChapterName())),
-                  font=fnt, fill=(0, 0, 0))
+        text = "Next:\nChapter " + str(self.getChapterNumber() + "\n" + str(self.getChapterName()))
+        draw.text((image.size[0] / 2, image.size[1] / 2), text,
+                  font=fnt, fill=config.TITLE_TEXT_COLOR, anchor="mm")
         return image
 
     def __drawPageNumber(self, dest, curr_page, total_pages):  # void
@@ -130,14 +134,28 @@ class Chapter:
         :return: void
         """
         text = str(self.getChapterNumber()) + "  " + str(curr_page) + "/" + str(int(total_pages))
-        fnt = ImageFont.truetype(config.FONT, 30)
-        overlay = Image.new(mode="RGBA", size=(160, 22), color=config.PAGE_NUM_FILL)
+        fnt = ImageFont.truetype(config.PAGE_FONT, config.PAGE_SIZE)
+        _, _, fnt_width, fnt_height = fnt.getbbox(text)
+        overlay = Image.new(mode="RGBA", size=(fnt_width + (2 * config.PAGE_PADDING),
+                                               fnt_height + (2 * config.PAGE_PADDING)), color=config.PAGE_NUM_FILL)
         draw = ImageDraw.Draw(overlay)
-        draw.text((160, 0), text, font=fnt, fill=config.PAGE_NUM_COLOR, anchor="rt")
+        draw.text((config.PAGE_PADDING, overlay.size[1] / 2),
+                  text, font=fnt, fill=config.PAGE_NUM_COLOR, anchor="lm")
 
         # Paste the page number on top
-        dest.paste(overlay, (dest.size[0] - overlay.size[0], 0), overlay)
-        #         (img to paste, coordinates, mask)
+        match config.PAGE_LOCATION:
+            case 0:
+                dest.paste(overlay, (0, 0), overlay)
+                # ^ (img to paste, coordinates, mask)
+            case 1:
+                dest.paste(overlay, (dest.size[0] - overlay.size[0], 0), overlay)
+            case 2:
+                dest.paste(overlay, (0, dest.size[1] - overlay.size[1]), overlay)
+            case 3:
+                dest.paste(overlay, (dest.size[0] - overlay.size[0], dest.size[1] - overlay.size[1]), overlay)
+            case _:
+                logging.error("Invalid page location")
+                raise ValueError("Chapter.__drawPageNumber throws invalid page location")
         overlay.close()
 
     def toPDF(self):  # String
@@ -174,8 +192,11 @@ class Chapter:
 
     # Getter and setter methods
     def setChapterNumber(self, number):  # bool
-        """Setter method for number with checking.
-        Returns true for successful set and false for not"""
+        """
+        Setter method for chapter number with checking.
+        :param number: Number to set the chapter number to
+        :return: True for successful set and false for unsuccessful set
+        """
         try:
             int(number)
         except ValueError:
@@ -197,6 +218,16 @@ class Chapter:
         return self.__manga.getOut()
 
 
+def checkFonts():
+    """Throws a ValueError if the font given is invalid.
+    It is common for invalid fonts to be given in the config.py file, so make sure they are valid before continuing."""
+    try:
+        fnt = ImageFont.truetype(config.TITLE_FONT, config.TITLE_SIZE)
+        fnt = ImageFont.truetype(config.PAGE_FONT, config.PAGE_SIZE)
+    except OSError:
+        raise ValueError("Invalid font given in config.py.  Try changing TITLE_FONT and PAGE_FONT in config.py.")
+
+
 def main():
     # Parse arguments
     parser = argparse.ArgumentParser()
@@ -211,6 +242,7 @@ def main():
     if args.delete is not None:
         config.DELETE = args.delete
 
+    checkFonts()
     # Create Manga object
     manga = Manga(args.input, args.output)
     # Convert to PDF
