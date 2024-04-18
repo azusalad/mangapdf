@@ -7,7 +7,7 @@ Features:
 * Addition of title page before each chapter
 * Addition of chapter numbers and page numbers
 * PDF bookmarks of chapters
-* Soon: margin removal and color detection
+* Soon: margin removal, color detection, multithreading
  
 The input manga has this structure:
 ```
@@ -52,7 +52,7 @@ program, the final combined pdf will be placed inside the output directory.
 ### Example Usage
 Input:
 ```
-py main.py -i path/to/MangaRootFolder -o path/to/MangaOut
+python main.py -i path/to/MangaRootFolder -o path/to/MangaOut
 ```
 Output:
 ```

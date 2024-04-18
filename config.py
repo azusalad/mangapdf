@@ -1,4 +1,6 @@
-# Matches the number after Ch.
+# Regex pattern for matching the chapter number given the chapter title name.
+# The first matching group is the chapter number.
+# This pattern currently matches the number after Ch.
 REGEX_PATTERN = "^.+Ch\.(\d+)(\s|$)(.+$|)"
 
 # ----------------------------
@@ -20,9 +22,9 @@ PAGE_FONT = "Arial.TTF"
 # 2: bottom left
 # 3: bottom right
 PAGE_LOCATION = 1
-# Background color
+# Background color (R, G, B, A)
 PAGE_NUM_FILL = (0, 0, 0, 127)
-# Text color
+# Text color (R, G, B)
 PAGE_NUM_COLOR = (255, 255, 255)
 # Padding
 PAGE_PADDING = 1
