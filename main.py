@@ -176,6 +176,8 @@ class Chapter:
         bbox = diff.getbbox()
         if bbox:
             return image.crop(bbox)
+        else:
+            return image
 
     def toPDF(self):  # String
         """
@@ -197,7 +199,7 @@ class Chapter:
             else:
                 current = current.convert("RGB")
                 if config.TRIM:
-                    self.__removeMargins(current)
+                    current = self.__removeMargins(current)
                 self.__drawPageNumber(current, index, len(chapter_dir))
                 self.__pages.append(current)
             index += 1
