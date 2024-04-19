@@ -1,5 +1,5 @@
 from PIL import Image, ImageDraw, ImageFont, ImageChops
-from PyPDF2 import PdfMerger
+from pypdf import PdfMerger, PdfWriter, PdfReader
 from natsort import natsorted, ns
 from tqdm import tqdm
 import ocrmypdf
@@ -79,7 +79,7 @@ class Manga:
 
         # Add metadata
         if config.AUTHOR:
-            merger.add_metadata({u"/Title": self.__title, u"Author": config.AUTHOR})
+            merger.add_metadata({u"/Title": self.__title, u"/Author": config.AUTHOR})
         else:
             merger.add_metadata({u"/Title": self.__title})
 
@@ -91,6 +91,19 @@ class Manga:
         if config.DELETE:
             logging.info("Removing temporary pdfs")
             [os.remove(os.path.join(self.getOut(), x)) for x in os.listdir(self.getOut()) if x != self.__title]
+
+        # # Reverse pages if desired
+        # if config.REVERSE:
+        #     reversed_pdf = PdfWriter()
+        #     normal_pdf = PdfReader(os.path.join(self.getOut(), self.__title))
+        #     # for (int page = normal_pdf.getNumPages(); page > 0; ++page)
+        #     page = normal_pdf._get_num_pages() - 1
+        #     while page >= 0:
+        #         reversed_pdf.add_page(normal_pdf._get_page(page))
+        #         page -= 1
+        #     with open(os.path.join(self.getOut(), self.__title), "wb") as f:
+        #         reversed_pdf.write(f)
+
         # Add OCR
         if config.OCR:
             logging.info("Applying OCR")
