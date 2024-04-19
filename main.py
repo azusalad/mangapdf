@@ -179,15 +179,21 @@ class Chapter:
 
     @staticmethod
     def __removeMargins(image):
+        logging.debug("Trimming")
         # https://stackoverflow.com/questions/10615901/trim-whitespace-using-pil
         # Create a new image the same size as the input.  Fill color is the top left pixel of the input
-        bg = Image.new(image.mode, image.size, image.getpixel((0, 0)))
+        if config.TRIM_COLOR:
+            bg = Image.new(image.mode, image.size, config.TRIM_COLOR)
+        else:
+            bg = Image.new(image.mode, image.size, image.getpixel((0, 0)))
         # Create a new Image diff containing the absolute value difference of each pixel between the two images
         # The reason we need to do this is because the getbbox() method only looks at pure black pixels on the edges
         diff = ImageChops.difference(image, bg)
+        diff = ImageChops.add(diff, diff, 2.0, -1 * config.TRIM_THRESHOLD)
         # Get bounding box of the diff Image and crop according to the bounds of this box
         bbox = diff.getbbox()
         if bbox:
+            logging.debug("Cropped")
             return image.crop(bbox)
         else:
             return image
@@ -234,7 +240,7 @@ class Chapter:
         :return: True for successful set and false for unsuccessful set
         """
         try:
-            int(number)
+            float(number)
         except ValueError:
             return False
         else:
@@ -281,6 +287,10 @@ def main():
                         help="Add OCR on the output pdf.  Default is no ocr")
     parser.add_argument("--trim", required=False, action=argparse.BooleanOptionalAction,
                         help="Remove margins or whitespace.  Useful for 4-Koma.  Default is trim")
+    parser.add_argument("--threshold", required=False,
+                        help="Trim threshold.  Higher values give more aggressive trimming.  Default is 20")
+    parser.add_argument("--log", required=False,
+                        help="Logging level.  Default is WARNING")
 
     args = parser.parse_args()
     if args.title is not None:
@@ -293,7 +303,12 @@ def main():
         config.OCR = args.ocr
     if args.trim is not None:
         config.TRIM = args.trim
+    if args.threshold is not None:
+        config.TRIM_THRESHOLD = int(args.threshold)
+    if args.log is not None:
+        config.LOG_LEVEL = args.log
 
+    logging.basicConfig(level=config.LOG_LEVEL)
     checkFonts()
     # Create Manga object
     manga = Manga(args.input, args.output)

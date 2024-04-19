@@ -1,7 +1,7 @@
 # Regex pattern for matching the chapter number given the chapter title name.
 # The first matching group is the chapter number.
 # This pattern currently matches the number after Ch.
-REGEX_PATTERN = "^.+Ch\.(\d+)(\s|$)(.+$|)"
+REGEX_PATTERN = r"^.+Ch\.(\d+|\d+.\d)(\s|$)(.+$|)"
 
 # ----------------------------
 # Title page
@@ -32,16 +32,29 @@ PAGE_PADDING = 1
 PAGE_SIZE = 30
 
 # ----------------------------
-# Defaults
+# Trim Margins
+# ----------------------------
+# Remove margins or whitespace.  Useful for 4-Koma
+TRIM = True
+# Pixels equal to this or under will be set to 0 when finding bounding box
+# Higher values give more aggressive trimming
+TRIM_THRESHOLD = 20
+# The color of the margins in (R, G, B).  Set to None to use the top left pixel as a guide
+TRIM_COLOR = (255, 255, 255)
+
+# ----------------------------
+# Other Defaults
 # Arguments will take priority over defaults below
 # ----------------------------
 # Delete temporary pdf files created during conversion
 DELETE = True
-# Remove margins or whitespace.  Useful for 4-Koma
-TRIM = True
 # Apply ocrmypdf on output pdf
 OCR = False
 OCR_LANGUAGES = "eng"
+# Reverses ordering of pages
+#REVERSE = True
+# Logging level
+LOG_LEVEL = "WARNING"
 
 # If no title argument given, the default will be the basename of the output path
 TITLE = None
