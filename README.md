@@ -7,7 +7,9 @@ Features:
 * Addition of title page before each chapter
 * Addition of chapter numbers and page numbers
 * PDF bookmarks of chapters
-* Soon: margin removal, color detection, multithreading
+* OCRmyPDF on output file
+* Margin or whitespace removal.  Good for 4-Koma manga
+* Might add soon: Color detection, multithreading, bulk conversions
  
 The input manga has this structure:
 ```
@@ -21,8 +23,12 @@ MangaRootFolder
 ```
 This is the structure used by programs like Tachiyomi.
 
+Preview:
+
+![Preview image](pic.png)
+
 ## Requirements
-Python, Pillow, PyPDF2, tqdm.  More information can be seen in `requirements.txt`
+Python, Pillow, PyPDF2, tqdm, ocrmypdf.  More information can be seen in `requirements.txt`
 
 ## Install
 Clone the repo, cd into the repo, install requirements
@@ -52,13 +58,13 @@ program, the final combined pdf will be placed inside the output directory.
 ### Example Usage
 Input:
 ```
-python main.py -i path/to/MangaRootFolder -o path/to/MangaOut
+python main.py -i path/to/MangaRootFolder -o path/to/MangaOut --title "My Favorite Manga!" --author "Author's name"
 ```
 Output:
 ```
-Starting conversion: path/to/MangaRootFolder -> path/to/MangaOut/MangaOut.pdf
+Starting conversion: path/to/MangaRootFolder -> path/to/MangaOut/My Favorite Manga!.pdf
 100%|███████████████████████| 3/3 [00:00<00:00,  4.20it/s]
-Your manga is done!  The path is path/to/MangaOut/MangaOut.pdf
+Your manga is done!  The path is path/to/MangaOut/My Favorite Manga!.pdf
 ```
 
 

@@ -29,7 +29,7 @@ PAGE_NUM_COLOR = (255, 255, 255)
 # Padding
 PAGE_PADDING = 1
 # Font size
-PAGE_SIZE = 20
+PAGE_SIZE = 30
 
 # ----------------------------
 # Defaults
@@ -37,3 +37,12 @@ PAGE_SIZE = 20
 # ----------------------------
 # Delete temporary pdf files created during conversion
 DELETE = True
+# Remove margins or whitespace.  Useful for 4-Koma
+TRIM = True
+# Apply ocrmypdf on output pdf
+OCR = False
+OCR_LANGUAGES = "eng"
+
+# If no title argument given, the default will be the basename of the output path
+TITLE = None
+AUTHOR = None

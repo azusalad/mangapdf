@@ -1,7 +1,8 @@
-from PIL import ImageFile, Image, ImageDraw, ImageFont, ImageStat
+from PIL import Image, ImageDraw, ImageFont, ImageChops
 from PyPDF2 import PdfMerger
 from natsort import natsorted, ns
 from tqdm import tqdm
+import ocrmypdf
 import argparse
 import os
 import re
@@ -11,24 +12,18 @@ import config
 
 
 class Manga:
-    """
-    Fields:
-    __manga_path = None  # String, Private
-    __out_path = None  # String, Private
-    __chapters = []  # List of Chapters, Private
-    __chapter_pdfs = []  # List of Strings pointing to the chapter pdfs, Private
-    __chapter_numbers = []  # List of Ints, Private
-    __chapter_invalids = []  # List of Ints, Private
-    """
-
     def __init__(self, manga_path, out_path):
         """Constructor sets up the Object and output directory"""
-        self.__manga_path = os.path.abspath(manga_path)
-        self.__out_path = os.path.abspath(out_path)
-        self.__chapters = []
-        self.__chapter_pdfs = []
-        self.__chapter_numbers = []
-        self.__chapter_invalids = []
+        self.__manga_path = os.path.abspath(manga_path)  # String, Private
+        self.__out_path = os.path.abspath(out_path)  # String, Private
+        self.__chapters = []  # List of Chapters, Private
+        self.__chapter_pdfs = []  # List of Strings pointing to the chapter pdfs, Private
+        self.__chapter_numbers = []  # List of Ints, Private
+        self.__chapter_invalids = []  # List of Ints, Private
+        if config.TITLE:
+            self.__title = config.TITLE + ".pdf"  # String, Private
+        else:
+            self.__title = os.path.basename(self.getOut()) + ".pdf"
         self.__initChapters()
 
     def __initChapters(self):
@@ -64,10 +59,13 @@ class Manga:
             self.__chapters.pop(self.__chapter_invalids[0])
             self.__chapter_invalids = [x - 1 for x in self.__chapter_invalids[1:]]
 
+    def __ocr(self, f_name, languages):
+        # Apply OCR
+        ocrmypdf.ocr(f_name, f_name, language=languages, title=self.__title, output_type="pdf")
+
     def convert(self):  # String
         """Create the final output pdf"""
         logging.info("Starting conversion")
-        out_name = os.path.basename(self.getOut()) + ".pdf"
         # Create a pdf for all the chapters
         for chapter in tqdm(self.__chapters):
             self.__chapter_pdfs.append(chapter.toPDF())
@@ -78,14 +76,28 @@ class Manga:
         merger = PdfMerger(strict=False)
         for pdf in self.__chapter_pdfs:
             merger.append(pdf, "Chapter " + os.path.basename(pdf))
-        with open(os.path.join(self.getOut(), out_name), "wb") as f:
+
+        # Add metadata
+        if config.AUTHOR:
+            merger.add_metadata({u"/Title": self.__title, u"Author": config.AUTHOR})
+        else:
+            merger.add_metadata({u"/Title": self.__title})
+
+        # Write output
+        with open(os.path.join(self.getOut(), self.__title), "wb") as f:
             merger.write(f)
         logging.info("Combined pdf created")
         # Remove temporary PDF files
         if config.DELETE:
             logging.info("Removing temporary pdfs")
-            [os.remove(os.path.join(self.getOut(), x)) for x in os.listdir(self.getOut()) if x != out_name]
-        return os.path.join(self.getOut(), out_name)
+            [os.remove(os.path.join(self.getOut(), x)) for x in os.listdir(self.getOut()) if x != self.__title]
+        # Add OCR
+        if config.OCR:
+            logging.info("Applying OCR")
+            print("Applying OCR")
+            self.__ocr(os.path.join(self.getOut(), self.__title), config.OCR_LANGUAGES)
+
+        return os.path.join(self.getOut(), self.__title)
 
     def getOut(self):  # String
         return self.__out_path
@@ -93,23 +105,17 @@ class Manga:
     def getMangaPath(self):  # String
         return self.__manga_path
 
+    def getMangaTitle(self):
+        return self.__title
+
 
 class Chapter:
-    """
-    Fields:
-    __manga = None  # Manga, Private
-    __chapter_path = None  # String, Private
-    __chapter_name = None  # String, Private
-    __chapter_number = None  # int, Private
-    __pages = []  # PIL Image, Private
-    """
-
     def __init__(self, manga, path, name):  # void
-        self.__manga = manga
-        self.__chapter_path = os.path.abspath(path)
-        self.__chapter_name = name
-        self.__chapter_number = None
-        self.__pages = []
+        self.__manga = manga  # Manga, Private
+        self.__chapter_path = os.path.abspath(path)  # String, Private
+        self.__chapter_name = name  # String, Private
+        self.__chapter_number = None  # int, Private
+        self.__pages = []  # PIL Image, Private
 
     def __drawTitle(self):  # PIL Image
         """
@@ -158,6 +164,19 @@ class Chapter:
                 raise ValueError("Chapter.__drawPageNumber throws invalid page location")
         overlay.close()
 
+    @staticmethod
+    def __removeMargins(image):
+        # https://stackoverflow.com/questions/10615901/trim-whitespace-using-pil
+        # Create a new image the same size as the input.  Fill color is the top left pixel of the input
+        bg = Image.new(image.mode, image.size, image.getpixel((0, 0)))
+        # Create a new Image diff containing the absolute value difference of each pixel between the two images
+        # The reason we need to do this is because the getbbox() method only looks at pure black pixels on the edges
+        diff = ImageChops.difference(image, bg)
+        # Get bounding box of the diff Image and crop according to the bounds of this box
+        bbox = diff.getbbox()
+        if bbox:
+            return image.crop(bbox)
+
     def toPDF(self):  # String
         """
         Creates a single pdf from all the pages.
@@ -177,6 +196,8 @@ class Chapter:
                 logging.warning("Unable to open image: " + str(os.path.join(self.getChapterPath(), image)))
             else:
                 current = current.convert("RGB")
+                if config.TRIM:
+                    self.__removeMargins(current)
                 self.__drawPageNumber(current, index, len(chapter_dir))
                 self.__pages.append(current)
             index += 1
@@ -234,20 +255,36 @@ def main():
     parser.add_argument("-i", "--input", required=True, help="Path to input manga")
     parser.add_argument("-o", "--output", required=True, help="Output directory")
     # Optional flags
-    parser.add_argument("--delete", action=argparse.BooleanOptionalAction, help="Delete temporary pdf files after "
-                                                                                "compilation")
-    parser.set_defaults(delete=True)
-    args = parser.parse_args()
+    parser.add_argument("--delete", required=False, action=argparse.BooleanOptionalAction,
+                        help="Delete temporary pdf files after compilation.  Default is delete")
+    parser.add_argument("--ocr", required=False, action=argparse.BooleanOptionalAction,
+                        help="Add OCR on the output pdf.  Default is no ocr")
+    parser.add_argument("--trim", required=False, action=argparse.BooleanOptionalAction,
+                        help="Remove margins or whitespace.  Useful for 4-Koma.  Default is trim")
+    parser.add_argument("--title", required=False,
+                        help="Title metadata for output pdf.  If not specified then the basename of the output path "
+                             "will be used.")
+    parser.add_argument("--author", required=False,
+                        help="Author metadata for output pdf.  Default is none")
 
+    args = parser.parse_args()
     if args.delete is not None:
         config.DELETE = args.delete
+    if args.ocr is not None:
+        config.OCR = args.ocr
+    if args.trim is not None:
+        config.TRIM = args.trim
+    if args.title is not None:
+        config.TITLE = args.title
+    if args.author is not None:
+        config.AUTHOR = args.author
 
     checkFonts()
     # Create Manga object
     manga = Manga(args.input, args.output)
     # Convert to PDF
     print("Starting conversion: " + str(args.input) + " -> " + str(
-        os.path.join(args.output, os.path.basename(args.output))) + ".pdf")
+        os.path.join(args.output, manga.getMangaTitle())))
     out = manga.convert()
     print("Your manga is done!  The path is " + str(out))
 
