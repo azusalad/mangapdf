@@ -62,7 +62,8 @@ program, the final combined pdf will be placed inside the output directory.
 ### Example Usage
 Input:
 ```
-python main.py -i path/to/MangaRootFolder -o path/to/MangaOut --title "My Favorite Manga!" --author "Author's name"
+python main.py -i path/to/MangaRootFolder -o path/to/MangaOut\
+ --title "My Favorite Manga!" --author "Author's name"
 ```
 Output:
 ```
