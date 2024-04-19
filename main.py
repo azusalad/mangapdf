@@ -255,29 +255,29 @@ def main():
     parser.add_argument("-i", "--input", required=True, help="Path to input manga")
     parser.add_argument("-o", "--output", required=True, help="Output directory")
     # Optional flags
+    parser.add_argument("--title", required=False,
+                        help="Title metadata for output pdf.  If not specified then the basename of the output path "
+                             "will be used.")
+    parser.add_argument("--author", required=False,
+                        help="Author metadata for output pdf.  Default is none")
     parser.add_argument("--delete", required=False, action=argparse.BooleanOptionalAction,
                         help="Delete temporary pdf files after compilation.  Default is delete")
     parser.add_argument("--ocr", required=False, action=argparse.BooleanOptionalAction,
                         help="Add OCR on the output pdf.  Default is no ocr")
     parser.add_argument("--trim", required=False, action=argparse.BooleanOptionalAction,
                         help="Remove margins or whitespace.  Useful for 4-Koma.  Default is trim")
-    parser.add_argument("--title", required=False,
-                        help="Title metadata for output pdf.  If not specified then the basename of the output path "
-                             "will be used.")
-    parser.add_argument("--author", required=False,
-                        help="Author metadata for output pdf.  Default is none")
 
     args = parser.parse_args()
+    if args.title is not None:
+        config.TITLE = args.title
+    if args.author is not None:
+        config.AUTHOR = args.author
     if args.delete is not None:
         config.DELETE = args.delete
     if args.ocr is not None:
         config.OCR = args.ocr
     if args.trim is not None:
         config.TRIM = args.trim
-    if args.title is not None:
-        config.TITLE = args.title
-    if args.author is not None:
-        config.AUTHOR = args.author
 
     checkFonts()
     # Create Manga object

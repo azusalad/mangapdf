@@ -41,7 +41,7 @@ pip install -r requirements.txt
 ## Running
 Help message:
 ```
-usage: main.py [-h] -i INPUT -o OUTPUT [--delete | --no-delete]
+usage: main.py [-h] -i INPUT -o OUTPUT [--title TITLE] [--author AUTHOR] [--delete | --no-delete] [--ocr | --no-ocr] [--trim | --no-trim]
 
 options:
   -h, --help            show this help message and exit
@@ -49,8 +49,12 @@ options:
                         Path to input manga
   -o OUTPUT, --output OUTPUT
                         Output directory
+  --title TITLE         Title metadata for output pdf. If not specified then the basename of the output path will be used.
+  --author AUTHOR       Author metadata for output pdf. Default is none
   --delete, --no-delete
-                        Delete temporary pdf files after compilation
+                        Delete temporary pdf files after compilation. Default is delete
+  --ocr, --no-ocr       Add OCR on the output pdf. Default is no ocr
+  --trim, --no-trim     Remove margins or whitespace. Useful for 4-Koma. Default is trim
 ```
 Edit the `config.py` file to alter more settings such as fonts used.  After running the
 program, the final combined pdf will be placed inside the output directory.
