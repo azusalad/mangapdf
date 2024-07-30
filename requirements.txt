@@ -2,4 +2,4 @@ natsort==8.4.0
 ocrmypdf==16.1.2
 Pillow==10.3.0
 PyPDF2==3.0.1
-tqdm==4.66.2
+tqdm==4.66.3
